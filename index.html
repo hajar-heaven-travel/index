@@ -1,0 +1,934 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>سباق أبطال السياحة - لوحة تحفيز المبيعات</title>
+    <!-- استدعاء خطوط عربية عصرية من Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- مكتبة المؤثرات البصرية (Confetti) -->
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+    <!-- مكتبة المؤثرات الصوتية (Tone.js) -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.8.49/Tone.js"></script>
+    <!-- أيقونات FontAwesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        cairo: ['Cairo', 'sans-serif'],
+                    },
+                    colors: {
+                        skyBrand: {
+                            50: '#f0f9ff',
+                            100: '#e0f2fe',
+                            500: '#0ea5e9',
+                            600: '#0284c7',
+                            700: '#0369a1',
+                            900: '#0c4a6e',
+                        },
+                        goldBrand: {
+                            400: '#fbbf24',
+                            500: '#f59e0b',
+                            600: '#d97706',
+                        }
+                    },
+                    animation: {
+                        'float': 'float 3s ease-in-out infinite',
+                        'bounce-short': 'bounce 0.6s ease-in-out 2',
+                    },
+                    keyframes: {
+                        float: {
+                            '0%, 100%': { transform: 'translateY(0px)' },
+                            '50%': { transform: 'translateY(-6px)' },
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        body {
+            font-family: 'Cairo', sans-serif;
+            background: linear-gradient(135deg, #e0f2fe 0%, #f0f9ff 40%, #fef3c7 100%);
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        /* مسار الطائرة المخصص */
+        .flight-track {
+            background: repeating-linear-gradient(
+                90deg,
+                #cbd5e1,
+                #cbd5e1 10px,
+                transparent 10px,
+                transparent 20px
+            );
+        }
+
+        /* حركة الطائرة مع اتجاه RTL (من اليمين لليسار) */
+        .plane-icon {
+            transition: right 0.7s cubic-bezier(0.34, 1.56, 0.64, 1);
+            transform: scaleX(-1); /* توجيه الطائرة لليسار لتناسب اتجاه التقدم العربي */
+        }
+
+        /* تأثير زجاجي ناعم */
+        .glass-card {
+            background: rgba(255, 255, 255, 0.92);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.6);
+        }
+
+        /* شريط التمرير المخصص للسجل */
+        ::-webkit-scrollbar {
+            width: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #f1f5f9;
+            border-radius: 10px;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #94a3b8;
+            border-radius: 10px;
+        }
+    </style>
+</head>
+<body class="text-slate-800 pb-12">
+
+    <!-- خلفية زخرفية خفيفة -->
+    <div class="fixed inset-0 pointer-events-none overflow-hidden z-0 opacity-20">
+        <i class="fa-solid fa-plane-departure text-sky-400 text-8xl absolute top-12 left-10 animate-float"></i>
+        <i class="fa-solid fa-earth-africa text-amber-400 text-9xl absolute bottom-10 right-10"></i>
+        <i class="fa-solid fa-umbrella-beach text-sky-500 text-7xl absolute top-1/2 left-1/4"></i>
+    </div>
+
+    <!-- الشريط العلوي (Header) -->
+    <header class="relative z-10 bg-gradient-to-l from-sky-700 via-sky-600 to-cyan-600 text-white shadow-lg rounded-b-3xl mb-6">
+        <div class="max-w-7xl mx-auto px-4 py-5 sm:px-6 lg:px-8">
+            <div class="flex flex-col md:flex-row items-center justify-between gap-4">
+                <!-- شعار وعنوان الشركة -->
+                <div class="flex items-center gap-3 text-center md:text-right">
+                    <div class="bg-amber-400 text-sky-900 p-3 rounded-2xl shadow-md transform -rotate-3">
+                        <i class="fa-solid fa-plane-up text-2xl sm:text-3xl"></i>
+                    </div>
+                    <div>
+                        <h1 class="text-2xl sm:text-3xl font-black tracking-tight flex flex-wrap items-center gap-2 justify-center md:justify-start">
+                            <span>رحلة الـ 50 عميل</span>
+                            <span class="text-xs bg-amber-400 text-sky-950 px-2.5 py-0.5 rounded-full font-extrabold">تحدي المبيعات</span>
+                            <!-- مؤشر حالة المزامنة اللحظية -->
+                            <span id="syncStatusBadge" class="inline-flex items-center gap-1.5 text-xs bg-white/15 text-sky-100 px-2.5 py-0.5 rounded-full font-bold border border-white/20">
+                                <span id="syncDot" class="w-2 h-2 rounded-full bg-amber-300 animate-pulse"></span>
+                                <span id="syncText">جاري الاتصال...</span>
+                            </span>
+                        </h1>
+                        <p class="text-sky-100 text-sm sm:text-base font-medium">كل حجز جديد بيقربك من القمة.. انطلق يا بطل! 🚀</p>
+                    </div>
+                </div>
+
+                <!-- أزرار التحكم العامة (الصوت + إعادة الضبط) -->
+                <div class="flex items-center gap-3">
+                    <button id="soundToggleBtn" onclick="toggleSound()" class="flex items-center gap-2 bg-white/15 hover:bg-white/25 backdrop-blur-sm px-4 py-2.5 rounded-xl font-bold text-sm transition cursor-pointer border border-white/20" title="تفعيل أو كتم المؤثرات الصوتية">
+                        <i id="soundIcon" class="fa-solid fa-volume-high text-amber-300"></i>
+                        <span id="soundText">الصوت مفعل</span>
+                    </button>
+                    
+                    <button onclick="openResetModal()" class="flex items-center gap-2 bg-rose-500/80 hover:bg-rose-600 text-white px-4 py-2.5 rounded-xl font-bold text-sm transition cursor-pointer shadow-sm">
+                        <i class="fa-solid fa-rotate-right"></i>
+                        <span>إعادة ضبط الشهر</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- شريط هدف الشركة الإجمالي (150 عميل) -->
+            <div class="mt-6 bg-sky-900/40 backdrop-blur-md rounded-2xl p-4 border border-white/15">
+                <div class="flex flex-wrap items-center justify-between gap-2 mb-2">
+                    <div class="flex items-center gap-2">
+                        <i class="fa-solid fa-trophy text-amber-400 text-xl"></i>
+                        <span class="font-bold text-base sm:text-lg">الهدف الإجمالي للشركة (تارجت الفريق)</span>
+                    </div>
+                    <div class="text-left">
+                        <span id="totalCompanyCount" class="text-2xl sm:text-3xl font-black text-amber-300">0</span>
+                        <span class="text-sky-200 font-bold text-sm sm:text-base">/ 150 عميل</span>
+                        <span id="totalCompanyPercent" class="mr-2 bg-amber-400/20 text-amber-200 text-xs font-extrabold px-2 py-1 rounded-lg">0%</span>
+                    </div>
+                </div>
+                <div class="w-full bg-sky-950/60 h-4 rounded-full overflow-hidden p-0.5 border border-white/10">
+                    <div id="totalCompanyBar" class="bg-gradient-to-l from-amber-400 via-yellow-300 to-emerald-400 h-full rounded-full transition-all duration-700 ease-out" style="width: 0%"></div>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- المحتوى الرئيسي -->
+    <main class="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-8">
+
+        <!-- بانر الرسالة التشجيعية الفورية (يظهر ويتفاعل عند إضافة حجز) -->
+        <div id="cheerBanner" class="glass-card rounded-2xl p-4 sm:p-5 shadow-md border-r-8 border-amber-400 flex items-center justify-between gap-4 transition-all duration-300">
+            <div class="flex items-center gap-4">
+                <div id="cheerEmoji" class="text-3xl sm:text-4xl bg-amber-100 w-14 h-14 rounded-2xl flex items-center justify-center shrink-0 shadow-inner">
+                    ✈️
+                </div>
+                <div>
+                    <span class="text-xs font-bold uppercase tracking-wider text-sky-600 block mb-0.5">رسالة الكابتن للفريق</span>
+                    <h2 id="cheerMessage" class="text-lg sm:text-xl font-extrabold text-slate-800">
+                        أهلاً بنورا ونهى ومصطفى! مين هيحقق أول حجز النهاردة ويطير بالصدارة؟ 🔥
+                    </h2>
+                </div>
+            </div>
+            <div class="hidden sm:flex items-center gap-2 text-xs font-bold text-slate-500 bg-slate-100 px-3 py-2 rounded-xl">
+                <i class="fa-solid fa-bolt text-amber-500"></i>
+                <span>اضغط "+ إضافة حجز" للانطلاق</span>
+            </div>
+        </div>
+
+        <!-- بطاقات موظفي المبيعات الثلاثة -->
+        <section>
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6" id="repsContainer">
+                <!-- سيتم توليد البطاقات ديناميكياً عبر JavaScript -->
+            </div>
+        </section>
+
+        <!-- القسم السفلي: لوحة الشرف + سجل الحجوزات المباشر -->
+        <section class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+            
+            <!-- لوحة الشرف والترتيب (Leaderboard) -->
+            <div class="lg:col-span-5 glass-card rounded-3xl p-6 shadow-md border border-slate-200/80">
+                <div class="flex items-center justify-between mb-5">
+                    <div class="flex items-center gap-2.5">
+                        <div class="bg-amber-100 text-amber-600 w-10 h-10 rounded-xl flex items-center justify-center text-xl">
+                            <i class="fa-solid fa-crown"></i>
+                        </div>
+                        <div>
+                            <h3 class="text-xl font-black text-slate-800">لوحة الشرف والصدارة</h3>
+                            <p class="text-xs text-slate-500 font-semibold">ترتيب الأبطال حسب عدد العملاء المحقق</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="leaderboardList" class="space-y-3">
+                    <!-- يتم تعبئتها ديناميكياً -->
+                </div>
+            </div>
+
+            <!-- شريط الأخبار وسجل الحجوزات المباشر -->
+            <div class="lg:col-span-7 glass-card rounded-3xl p-6 shadow-md border border-slate-200/80 flex flex-col">
+                <div class="flex items-center justify-between mb-5">
+                    <div class="flex items-center gap-2.5">
+                        <div class="bg-sky-100 text-sky-600 w-10 h-10 rounded-xl flex items-center justify-center text-xl">
+                            <i class="fa-solid fa-tower-broadcast"></i>
+                        </div>
+                        <div>
+                            <h3 class="text-xl font-black text-slate-800">رادار الحجوزات المباشر</h3>
+                            <p class="text-xs text-slate-500 font-semibold">آخر التحركات والإنجازات المسجلة للفريق</p>
+                        </div>
+                    </div>
+                    <span class="inline-flex items-center gap-1.5 text-xs font-bold text-emerald-700 bg-emerald-100 px-3 py-1 rounded-full">
+                        <span class="w-2 h-2 rounded-full bg-emerald-500 animate-ping"></span>
+                        مباشر
+                    </span>
+                </div>
+
+                <div id="activityLog" class="space-y-2.5 max-h-64 overflow-y-auto pr-1 flex-1">
+                    <!-- يتم تعبئتها ديناميكياً -->
+                </div>
+            </div>
+
+        </section>
+    </main>
+
+    <!-- نافذة تعديل بيانات الموظف (Modal) -->
+    <div id="editModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 hidden items-center justify-center p-4">
+        <div class="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl transform transition-all">
+            <div class="flex items-center justify-between mb-4 border-b pb-3">
+                <h3 class="text-xl font-black text-slate-800 flex items-center gap-2">
+                    <i class="fa-solid fa-user-pen text-sky-600"></i>
+                    <span>تعديل بيانات الموظف</span>
+                </h3>
+                <button onclick="closeEditModal()" class="text-slate-400 hover:text-slate-600 text-xl p-1 cursor-pointer">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+            
+            <form id="editRepForm" onsubmit="saveRepEdit(event)" class="space-y-4">
+                <input type="hidden" id="editRepId">
+                
+                <div>
+                    <label class="block text-sm font-bold text-slate-700 mb-1">اسم الموظف</label>
+                    <input type="text" id="editRepName" required maxlength="20" class="w-full px-4 py-2.5 rounded-xl border border-slate-300 focus:ring-2 focus:ring-sky-500 focus:border-sky-500 font-bold text-slate-800" placeholder="مثال: نورا">
+                </div>
+
+                <div>
+                    <label class="block text-sm font-bold text-slate-700 mb-2">اختر أيقونة / شخصية الموظف</label>
+                    <div class="grid grid-cols-6 gap-2" id="avatarSelector">
+                        <!-- خيارات الأفاتار -->
+                    </div>
+                    <input type="hidden" id="editRepAvatar">
+                </div>
+
+                <div>
+                    <label class="block text-sm font-bold text-slate-700 mb-1">الهدف المطلوب (التارجت)</label>
+                    <input type="number" id="editRepTarget" min="1" max="500" required class="w-full px-4 py-2.5 rounded-xl border border-slate-300 focus:ring-2 focus:ring-sky-500 focus:border-sky-500 font-bold text-slate-800">
+                </div>
+
+                <div class="flex items-center justify-end gap-3 pt-4 border-t">
+                    <button type="button" onclick="closeEditModal()" class="px-5 py-2.5 rounded-xl font-bold text-slate-600 hover:bg-slate-100 transition cursor-pointer">إلغاء</button>
+                    <button type="submit" class="px-6 py-2.5 rounded-xl font-bold bg-sky-600 hover:bg-sky-700 text-white shadow-md transition cursor-pointer">حفظ التعديلات</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- نافذة تأكيد إعادة ضبط الشهر (بديل مخصص لـ confirm) -->
+    <div id="resetModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 hidden items-center justify-center p-4">
+        <div class="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl text-center">
+            <div class="w-16 h-16 bg-rose-100 text-rose-600 rounded-full flex items-center justify-center text-3xl mx-auto mb-4">
+                <i class="fa-solid fa-triangle-exclamation"></i>
+            </div>
+            <h3 class="text-xl font-black text-slate-800 mb-2">بدء شهر جديد؟</h3>
+            <p class="text-slate-600 text-sm mb-6 leading-relaxed">
+                سيتم تصفير عدادات الحجوزات لجميع الموظفين (0 عميل) ومسح سجل الحجوزات المباشر، مع الاحتفاظ بأسماء الموظفين. هل أنت متأكد؟
+            </p>
+            <div class="flex items-center justify-center gap-3">
+                <button onclick="closeResetModal()" class="flex-1 py-3 rounded-xl font-bold text-slate-700 bg-slate-100 hover:bg-slate-200 transition cursor-pointer">تراجع</button>
+                <button onclick="confirmResetMonth()" class="flex-1 py-3 rounded-xl font-bold text-white bg-rose-600 hover:bg-rose-700 shadow-md transition cursor-pointer">نعم، ابدأ شهر جديد</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- منطق التطبيق الكامل مع المزامنة اللحظية (Firebase Firestore) -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInAnonymously, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, doc, getDoc, setDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        // --- 1. البيانات الافتراضية بالترتيب المطلوب (نورا، نهى، مصطفى) ---
+        const AVATAR_OPTIONS = ['👩‍✈️', '🦸‍♀️', '🧑‍✈️', '🦸‍♂️', '🦁', '🦅', '🌟', '🚀', '🧳', '🌍', '👑', '🔥'];
+
+        const DEFAULT_DATA = {
+            soundEnabled: true,
+            cheerEmoji: '✈️',
+            cheerMessage: 'أهلاً بنورا ونهى ومصطفى! مين هيحقق أول حجز النهاردة ويطير بالصدارة؟ 🔥',
+            reps: [
+                { id: 1, name: 'نورا', count: 0, target: 50, avatar: '👩‍✈️', color: 'sky' },
+                { id: 2, name: 'نهى', count: 0, target: 50, avatar: '🦸‍♀️', color: 'amber' },
+                { id: 3, name: 'مصطفى', count: 0, target: 50, avatar: '🧑‍✈️', color: 'emerald' }
+            ],
+            logs: [
+                { id: 101, text: '🚀 انطلق سباق الشهر الجديد بين نورا ونهى ومصطفى! بالتوفيق للجميع', time: 'الآن', type: 'milestone' }
+            ]
+        };
+
+        let appState = JSON.parse(JSON.stringify(DEFAULT_DATA));
+        let db = null;
+        let auth = null;
+        let currentUser = null;
+        let dashboardDocRef = null;
+
+        // تحديث مؤشر حالة المزامنة في الشريط العلوي
+        function updateSyncStatus(status) {
+            const dot = document.getElementById('syncDot');
+            const text = document.getElementById('syncText');
+            if (!dot || !text) return;
+
+            if (status === 'connected') {
+                dot.className = 'w-2 h-2 rounded-full bg-emerald-400';
+                text.textContent = 'متصل ومزامن لحظياً';
+            } else if (status === 'syncing') {
+                dot.className = 'w-2 h-2 rounded-full bg-amber-300 animate-ping';
+                text.textContent = 'جاري الحفظ...';
+            } else if (status === 'error') {
+                dot.className = 'w-2 h-2 rounded-full bg-rose-400';
+                text.textContent = 'وضع غير متصل';
+            }
+        }
+
+        // تهيئة Firebase والاتصال بـ Firestore
+        async function initCloudSync() {
+            try {
+                const appId = typeof __app_id !== 'undefined' ? __app_id : 'tourism-sales-race-default';
+                const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : null;
+
+                if (!firebaseConfig) {
+                    console.warn('Firebase config not found, running in memory mode.');
+                    updateSyncStatus('error');
+                    renderAll();
+                    return;
+                }
+
+                const app = initializeApp(firebaseConfig);
+                auth = getAuth(app);
+                db = getFirestore(app);
+
+                // المصادقة أولاً قبل أي عملية قراءة أو كتابة
+                if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+                    const cred = await signInWithCustomToken(auth, __initial_auth_token);
+                    currentUser = cred.user;
+                } else {
+                    const cred = await signInAnonymously(auth);
+                    currentUser = cred.user;
+                }
+
+                if (!currentUser) return;
+
+                // المسار العام المشترك بين جميع المستخدمين: /artifacts/{appId}/public/data/sales_dashboard/main_board
+                dashboardDocRef = doc(db, 'artifacts', appId, 'public', 'data', 'sales_dashboard', 'main_board');
+
+                // التحقق مما إذا كانت البيانات موجودة مسبقاً؛ وإلا يتم زرع البيانات الأولية مرة واحدة فقط
+                const initialSnap = await getDoc(dashboardDocRef);
+                if (!initialSnap.exists()) {
+                    await setDoc(dashboardDocRef, DEFAULT_DATA);
+                }
+
+                // الاستماع اللحظي لأي تغيير من أي جهاز أو متصفح
+                onSnapshot(
+                    dashboardDocRef,
+                    (docSnap) => {
+                        if (docSnap.exists()) {
+                            const remoteData = docSnap.data();
+                            appState = {
+                                ...DEFAULT_DATA,
+                                ...remoteData,
+                                reps: Array.isArray(remoteData.reps) ? remoteData.reps : DEFAULT_DATA.reps,
+                                logs: Array.isArray(remoteData.logs) ? remoteData.logs : DEFAULT_DATA.logs
+                            };
+                            updateSyncStatus('connected');
+                            renderAll();
+                        }
+                    },
+                    (error) => {
+                        console.error('Firestore onSnapshot error:', error);
+                        updateSyncStatus('error');
+                    }
+                );
+            } catch (err) {
+                console.error('Cloud initialization error:', err);
+                updateSyncStatus('error');
+                renderAll();
+            }
+        }
+
+        // حفظ الحالة الحالية في Firestore لمزامنتها مع باقي الأجهزة فوراً
+        async function saveState() {
+            if (!currentUser || !dashboardDocRef) return;
+            try {
+                updateSyncStatus('syncing');
+                await setDoc(dashboardDocRef, {
+                    soundEnabled: appState.soundEnabled,
+                    cheerEmoji: appState.cheerEmoji || '✈️',
+                    cheerMessage: appState.cheerMessage || DEFAULT_DATA.cheerMessage,
+                    reps: appState.reps,
+                    logs: appState.logs,
+                    updatedAt: Date.now()
+                });
+                updateSyncStatus('connected');
+            } catch (e) {
+                console.error('Error saving state to cloud:', e);
+                updateSyncStatus('error');
+            }
+        }
+
+        // --- 2. المؤثرات الصوتية باستخدام Tone.js ---
+        let synth = null;
+        function initAudio() {
+            if (!synth && typeof Tone !== 'undefined') {
+                synth = new Tone.PolySynth(Tone.Synth).toDestination();
+                synth.volume.value = -8;
+            }
+        }
+
+        function playCelebrationSound(isMilestone = false, isComplete = false) {
+            if (!appState.soundEnabled) return;
+            try {
+                initAudio();
+                if (Tone.context.state !== 'running') {
+                    Tone.start();
+                }
+                const now = Tone.now();
+                if (isComplete) {
+                    synth.triggerAttackRelease("C5", "16n", now);
+                    synth.triggerAttackRelease("E5", "16n", now + 0.1);
+                    synth.triggerAttackRelease("G5", "16n", now + 0.2);
+                    synth.triggerAttackRelease("C6", "4n", now + 0.3);
+                } else if (isMilestone) {
+                    synth.triggerAttackRelease("E5", "16n", now);
+                    synth.triggerAttackRelease("G5", "16n", now + 0.12);
+                    synth.triggerAttackRelease("B5", "8n", now + 0.24);
+                } else {
+                    synth.triggerAttackRelease("G5", "32n", now);
+                    synth.triggerAttackRelease("C6", "16n", now + 0.08);
+                }
+            } catch (e) {
+                console.warn('Audio playback skipped:', e);
+            }
+        }
+
+        window.toggleSound = function() {
+            appState.soundEnabled = !appState.soundEnabled;
+            updateSoundUI();
+            if (appState.soundEnabled) {
+                playCelebrationSound(false, false);
+            }
+            saveState();
+        };
+
+        function updateSoundUI() {
+            const icon = document.getElementById('soundIcon');
+            const text = document.getElementById('soundText');
+            if (!icon || !text) return;
+            if (appState.soundEnabled) {
+                icon.className = 'fa-solid fa-volume-high text-amber-300';
+                text.textContent = 'الصوت مفعل';
+            } else {
+                icon.className = 'fa-solid fa-volume-xmark text-slate-300';
+                text.textContent = 'الصوت مكتوم';
+            }
+        }
+
+        // --- 3. الرسائل التشجيعية والأوسمة (Gamification Logic) ---
+        function getMilestoneInfo(count, target) {
+            const ratio = count / target;
+            if (count >= target) {
+                return { title: 'بطل المبيعات الأسطوري', icon: '👑', badgeColor: 'bg-amber-100 text-amber-800 border-amber-300', level: 4 };
+            } else if (ratio >= 0.8) {
+                return { title: 'المرحلة الأخيرة (قناص)', icon: '🔥', badgeColor: 'bg-rose-100 text-rose-800 border-rose-300', level: 3 };
+            } else if (ratio >= 0.5) {
+                return { title: 'كابتن نص الطريق', icon: '🏅', badgeColor: 'bg-sky-100 text-sky-800 border-sky-300', level: 2 };
+            } else if (ratio >= 0.2) {
+                return { title: 'انطلاقة صاروخية', icon: '🚀', badgeColor: 'bg-emerald-100 text-emerald-800 border-emerald-300', level: 1 };
+            } else {
+                return { title: 'تجهيز للإقلاع', icon: '🛫', badgeColor: 'bg-slate-100 text-slate-600 border-slate-200', level: 0 };
+            }
+        }
+
+        function getEncouragingMessage(rep) {
+            const { name, count, target } = rep;
+            const remaining = Math.max(0, target - count);
+            const ratio = count / target;
+
+            if (count === target) {
+                return { emoji: '🏆', msg: `مبرووووك يا ${name}! قفلت الـ ${target} عميل بنجاح ساحق! أنت أسطورة المبيعات 🎉` };
+            }
+            if (count > target) {
+                return { emoji: '🌟', msg: `عديت التارجت يا ${name}! (${count}/${target}) أداء خيالي ومكافأة مستحقة بجدارة! 🚀` };
+            }
+            if (remaining === 1) {
+                return { emoji: '😱', msg: `عميل واحد فقط يا ${name} وتقفل التارجت! يلا الضربة القاضية 🔥` };
+            }
+            if (remaining <= 5) {
+                return { emoji: '⚡', msg: `فاضلك ${remaining} عملاء بس يا ${name}! شايفين خط النهاية قدامك، وحش! 💪` };
+            }
+            if (ratio >= 0.8) {
+                return { emoji: '🔥', msg: `دخلت منطقة الخطر يا ${name}! وصلت لـ ${count}/${target}.. الـ ${target} بتقرب جداً!` };
+            }
+            if (count === Math.floor(target / 2)) {
+                return { emoji: '🎯', msg: `عاش يا ${name}! وصلت لنص الطريق بالظبط (${count}/${target})! كمل بنفس القوة ✈️` };
+            }
+            if (ratio >= 0.5) {
+                return { emoji: '✈️', msg: `طيارتك في السحاب يا ${name}! عديت النص (${count}/${target}) ولسه القادم أقوى!` };
+            }
+            if (ratio >= 0.2) {
+                return { emoji: '🚀', msg: `انطلاقة ولا أروع يا ${name}! (${count}/${target}) طيارتك أقلعت خلاص واستعد للتحليق!` };
+            }
+            const starters = [
+                `بداية قوية يا ${name}! (${count}/${target}) كل رحلة ألف ميل بتبدأ بحجز 💪`,
+                `عاش يا بطل! حجز جديد لـ ${name} (${count}/${target}).. استمر يا نجم ⭐`,
+                `تسلم إيدك يا ${name}! العداد بيتحرك (${count}/${target}) والمركز الأول بيناديك 🏆`
+            ];
+            return { emoji: '🎉', msg: starters[count % starters.length] };
+        }
+
+        // --- 4. التفاعلات الرئيسية (إضافة / تراجع) ---
+        window.addBooking = function(repId) {
+            const rep = appState.reps.find(r => r.id === repId);
+            if (!rep) return;
+
+            const prevMilestone = getMilestoneInfo(rep.count, rep.target);
+            rep.count += 1;
+            const newMilestone = getMilestoneInfo(rep.count, rep.target);
+
+            const isMilestoneUp = newMilestone.level > prevMilestone.level;
+            const isTargetReached = rep.count === rep.target;
+
+            // تحديث البانر التشجيعي وحفظه في الحالة المشتركة
+            const cheer = getEncouragingMessage(rep);
+            appState.cheerEmoji = cheer.emoji;
+            appState.cheerMessage = cheer.msg;
+
+            const banner = document.getElementById('cheerBanner');
+            document.getElementById('cheerEmoji').textContent = cheer.emoji;
+            document.getElementById('cheerMessage').textContent = cheer.msg;
+            
+            banner.classList.remove('scale-[1.01]', 'bg-amber-50');
+            void banner.offsetWidth;
+            banner.classList.add('scale-[1.01]', 'bg-amber-50');
+            setTimeout(() => banner.classList.remove('scale-[1.01]', 'bg-amber-50'), 600);
+
+            // إضافة للسجل المباشر
+            const nowTime = new Date().toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit' });
+            let logText = `${rep.avatar} ${rep.name} سجل حجز جديد! وصل لـ ${rep.count}/${rep.target} عميل`;
+            let logType = 'booking';
+
+            if (isTargetReached) {
+                logText = `🏆 إنجاز تاريخي! ${rep.name} قفل التارجت الكامل (${rep.target}/${rep.target})! 🎉`;
+                logType = 'milestone';
+            } else if (isMilestoneUp) {
+                logText = `${newMilestone.icon} ترقية! ${rep.name} فتح وسام "${newMilestone.title}" (${rep.count}/${rep.target})`;
+                logType = 'milestone';
+            }
+
+            appState.logs.unshift({
+                id: Date.now(),
+                text: logText,
+                time: nowTime,
+                type: logType
+            });
+
+            if (appState.logs.length > 20) {
+                appState.logs.pop();
+            }
+
+            playCelebrationSound(isMilestoneUp, isTargetReached);
+            triggerConfetti(isTargetReached || isMilestoneUp);
+
+            renderAll();
+            saveState();
+        };
+
+        window.removeBooking = function(repId) {
+            const rep = appState.reps.find(r => r.id === repId);
+            if (!rep || rep.count <= 0) return;
+
+            rep.count -= 1;
+            const nowTime = new Date().toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit' });
+            appState.logs.unshift({
+                id: Date.now(),
+                text: `↩️ تم التراجع عن حجز لـ ${rep.name} (الرصيد الحالي: ${rep.count}/${rep.target})`,
+                time: nowTime,
+                type: 'undo'
+            });
+
+            renderAll();
+            saveState();
+        };
+
+        function triggerConfetti(bigBurst = false) {
+            if (typeof confetti !== 'function') return;
+            if (bigBurst) {
+                confetti({
+                    particleCount: 120,
+                    spread: 80,
+                    origin: { y: 0.6 },
+                    colors: ['#0ea5e9', '#f59e0b', '#10b981', '#f43f5e']
+                });
+            } else {
+                confetti({
+                    particleCount: 45,
+                    spread: 55,
+                    origin: { y: 0.7 },
+                    colors: ['#0ea5e9', '#fbbf24', '#38bdf8']
+                });
+            }
+        }
+
+        // --- 5. رسم الواجهة وتحديث البيانات ---
+        function renderAll() {
+            renderCheerBanner();
+            renderCompanyTotal();
+            renderRepsCards();
+            renderLeaderboard();
+            renderLogs();
+            updateSoundUI();
+        }
+
+        function renderCheerBanner() {
+            const emojiEl = document.getElementById('cheerEmoji');
+            const msgEl = document.getElementById('cheerMessage');
+            if (emojiEl && appState.cheerEmoji) emojiEl.textContent = appState.cheerEmoji;
+            if (msgEl && appState.cheerMessage) msgEl.textContent = appState.cheerMessage;
+        }
+
+        function renderCompanyTotal() {
+            const totalCount = appState.reps.reduce((sum, r) => sum + r.count, 0);
+            const totalTarget = appState.reps.reduce((sum, r) => sum + r.target, 0);
+            const percent = totalTarget > 0 ? Math.min(100, Math.round((totalCount / totalTarget) * 100)) : 0;
+
+            document.getElementById('totalCompanyCount').textContent = totalCount;
+            document.querySelector('#totalCompanyCount + span').textContent = `/ ${totalTarget} عميل`;
+            document.getElementById('totalCompanyPercent').textContent = `${percent}%`;
+            document.getElementById('totalCompanyBar').style.width = `${percent}%`;
+        }
+
+        function renderRepsCards() {
+            const container = document.getElementById('repsContainer');
+            const maxCount = Math.max(...appState.reps.map(r => r.count));
+
+            container.innerHTML = appState.reps.map(rep => {
+                const percentage = Math.min(100, Math.round((rep.count / rep.target) * 100));
+                const remaining = Math.max(0, rep.target - rep.count);
+                const milestone = getMilestoneInfo(rep.count, rep.target);
+                const isLeader = rep.count > 0 && rep.count === maxCount;
+                const isCompleted = rep.count >= rep.target;
+
+                const themeMap = {
+                    sky: { border: 'border-sky-200', headerBg: 'from-sky-500 to-cyan-600', btn: 'bg-sky-600 hover:bg-sky-700 shadow-sky-200', bar: 'from-sky-400 to-sky-600' },
+                    amber: { border: 'border-amber-200', headerBg: 'from-amber-500 to-orange-500', btn: 'bg-amber-500 hover:bg-amber-600 shadow-amber-200', bar: 'from-amber-400 to-orange-500' },
+                    emerald: { border: 'border-emerald-200', headerBg: 'from-emerald-500 to-teal-600', btn: 'bg-emerald-600 hover:bg-emerald-700 shadow-emerald-200', bar: 'from-emerald-400 to-teal-600' }
+                };
+                const theme = themeMap[rep.color] || themeMap.sky;
+
+                return `
+                <div class="glass-card rounded-3xl shadow-lg border-2 ${isCompleted ? 'border-amber-400 ring-4 ring-amber-400/20' : theme.border} overflow-hidden flex flex-col justify-between transition-all duration-300 hover:-translate-y-1">
+                    
+                    <!-- رأس البطاقة -->
+                    <div>
+                        <div class="bg-gradient-to-l ${theme.headerBg} p-4 text-white flex items-center justify-between relative">
+                            <div class="flex items-center gap-3">
+                                <div class="w-14 h-14 bg-white/20 backdrop-blur-md rounded-2xl flex items-center justify-center text-3xl shadow-inner border border-white/30 relative">
+                                    ${rep.avatar}
+                                    ${isLeader ? '<span class="absolute -top-3 -right-2 text-xl drop-shadow" title="المتصدر حالياً">👑</span>' : ''}
+                                </div>
+                                <div>
+                                    <div class="flex items-center gap-2">
+                                        <h3 class="text-xl font-black">${rep.name}</h3>
+                                        <button onclick="openEditModal(${rep.id})" class="text-white/75 hover:text-white text-xs bg-black/15 hover:bg-black/25 p-1.5 rounded-lg transition cursor-pointer" title="تعديل الاسم أو الهدف">
+                                            <i class="fa-solid fa-pen"></i>
+                                        </button>
+                                    </div>
+                                    <span class="inline-flex items-center gap-1 text-xs font-bold bg-black/20 px-2.5 py-0.5 rounded-full mt-1">
+                                        <span>${milestone.icon}</span>
+                                        <span>${milestone.title}</span>
+                                    </span>
+                                </div>
+                            </div>
+
+                            <!-- النسبة المئوية -->
+                            <div class="text-left bg-white/15 px-3 py-1.5 rounded-2xl backdrop-blur-sm">
+                                <span class="text-xl font-black block leading-none">${percentage}%</span>
+                                <span class="text-[10px] font-bold opacity-90">مُنجز</span>
+                            </div>
+                        </div>
+
+                        <!-- العداد الرقمي الكبير -->
+                        <div class="p-5 pb-3 text-center">
+                            <div class="inline-flex items-baseline justify-center gap-1.5 bg-slate-50 px-6 py-3 rounded-2xl border border-slate-200/80 shadow-inner">
+                                <span class="text-5xl font-black text-slate-800 tracking-tight">${rep.count}</span>
+                                <span class="text-lg font-bold text-slate-400">/ ${rep.target} عميل</span>
+                            </div>
+                            
+                            <p class="text-xs font-bold mt-2.5 ${isCompleted ? 'text-emerald-600' : 'text-slate-500'}">
+                                ${isCompleted 
+                                    ? '🎉 تم تحقيق الهدف بنجاح! كل عميل إضافي بونص إضافي!' 
+                                    : `متبقي <span class="text-slate-800 font-black">${remaining}</span> عميل للوصول للهدف`}
+                            </p>
+                        </div>
+
+                        <!-- مسار الطائرة التفاعلي (Game Progress Track) -->
+                        <div class="px-5 py-4">
+                            <div class="relative pt-6 pb-2">
+                                <!-- الطائرة المتحركة -->
+                                <div class="plane-icon absolute top-0 text-2xl text-sky-600 drop-shadow-sm z-20" style="right: calc(${percentage}% - 14px);">
+                                    ✈️
+                                </div>
+
+                                <!-- شريط التقدم -->
+                                <div class="w-full h-4 bg-slate-200 rounded-full overflow-hidden p-0.5 relative shadow-inner">
+                                    <div class="bg-gradient-to-l ${theme.bar} h-full rounded-full transition-all duration-700 ease-out" style="width: ${percentage}%"></div>
+                                </div>
+
+                                <!-- نقاط التفتيش (Milestones: 0, 10, 25, 40, 50) -->
+                                <div class="flex justify-between text-[11px] font-extrabold text-slate-400 mt-1.5 px-0.5">
+                                    <span class="${rep.count >= 0 ? 'text-sky-600' : ''}">0</span>
+                                    <span class="${rep.count >= Math.round(rep.target*0.2) ? 'text-emerald-600' : ''}">🚀 ${Math.round(rep.target*0.2)}</span>
+                                    <span class="${rep.count >= Math.round(rep.target*0.5) ? 'text-sky-600' : ''}">🏅 ${Math.round(rep.target*0.5)}</span>
+                                    <span class="${rep.count >= Math.round(rep.target*0.8) ? 'text-rose-500' : ''}">🔥 ${Math.round(rep.target*0.8)}</span>
+                                    <span class="${rep.count >= rep.target ? 'text-amber-500' : ''}">🏆 ${rep.target}</span>
+                                </div>
+                            </div>
+
+                            <!-- شريط الأوسمة المفتوحة -->
+                            <div class="mt-3 pt-3 border-t border-slate-100 flex items-center justify-between">
+                                <span class="text-xs font-bold text-slate-400">الأوسمة:</span>
+                                <div class="flex items-center gap-1.5">
+                                    <span class="w-7 h-7 rounded-lg flex items-center justify-center text-sm border ${rep.count >= Math.round(rep.target*0.2) ? 'bg-emerald-50 border-emerald-300 opacity-100' : 'bg-slate-50 border-slate-200 opacity-30 grayscale'}" title="وسام الانطلاقة (20%)">🚀</span>
+                                    <span class="w-7 h-7 rounded-lg flex items-center justify-center text-sm border ${rep.count >= Math.round(rep.target*0.5) ? 'bg-sky-50 border-sky-300 opacity-100' : 'bg-slate-50 border-slate-200 opacity-30 grayscale'}" title="وسام نص الطريق (50%)">🏅</span>
+                                    <span class="w-7 h-7 rounded-lg flex items-center justify-center text-sm border ${rep.count >= Math.round(rep.target*0.8) ? 'bg-rose-50 border-rose-300 opacity-100' : 'bg-slate-50 border-slate-200 opacity-30 grayscale'}" title="وسام المرحلة الأخيرة (80%)">🔥</span>
+                                    <span class="w-7 h-7 rounded-lg flex items-center justify-center text-sm border ${rep.count >= rep.target ? 'bg-amber-50 border-amber-400 opacity-100 animate-bounce-short' : 'bg-slate-50 border-slate-200 opacity-30 grayscale'}" title="كأس التارجت الكامل (100%)">🏆</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- أزرار التحكم (إضافة حجز + تراجع) -->
+                    <div class="p-4 bg-slate-50/80 border-t border-slate-100 flex items-center gap-2">
+                        <button onclick="addBooking(${rep.id})" class="flex-1 ${theme.btn} text-white font-black py-3.5 px-4 rounded-2xl shadow-lg transition transform active:scale-95 flex items-center justify-center gap-2 text-base cursor-pointer">
+                            <i class="fa-solid fa-circle-plus text-lg"></i>
+                            <span>إضافة حجز جديد</span>
+                        </button>
+                        
+                        <button onclick="removeBooking(${rep.id})" ${rep.count === 0 ? 'disabled' : ''} class="p-3.5 rounded-2xl border border-slate-200 bg-white hover:bg-rose-50 hover:text-rose-600 hover:border-rose-200 text-slate-400 font-bold transition disabled:opacity-40 disabled:pointer-events-none cursor-pointer" title="تراجع (-1 حجز)">
+                            <i class="fa-solid fa-minus"></i>
+                        </button>
+                    </div>
+                </div>
+                `;
+            }).join('');
+        }
+
+        function renderLeaderboard() {
+            const list = document.getElementById('leaderboardList');
+            const sorted = [...appState.reps].sort((a, b) => b.count - a.count);
+
+            const rankStyles = [
+                { medal: '🥇', bg: 'bg-gradient-to-l from-amber-50 to-yellow-100/70 border-amber-300', badge: 'المركز الأول' },
+                { medal: '🥈', bg: 'bg-slate-50 border-slate-200', badge: 'المركز الثاني' },
+                { medal: '🥉', bg: 'bg-orange-50/50 border-orange-200/70', badge: 'المركز الثالث' }
+            ];
+
+            list.innerHTML = sorted.map((rep, index) => {
+                const style = rankStyles[index] || rankStyles[2];
+                const pct = Math.min(100, Math.round((rep.count / rep.target) * 100));
+
+                return `
+                <div class="flex items-center justify-between p-3.5 rounded-2xl border ${style.bg} transition-all">
+                    <div class="flex items-center gap-3">
+                        <span class="text-2xl w-8 text-center">${style.medal}</span>
+                        <span class="text-2xl bg-white w-10 h-10 rounded-xl flex items-center justify-center shadow-sm">${rep.avatar}</span>
+                        <div>
+                            <h4 class="font-black text-slate-800 text-base">${rep.name}</h4>
+                            <span class="text-xs font-bold text-slate-500">${style.badge} • ${pct}% من الهدف</span>
+                        </div>
+                    </div>
+                    <div class="text-left">
+                        <span class="text-xl font-black text-slate-800">${rep.count}</span>
+                        <span class="text-xs font-bold text-slate-400 block">عميل</span>
+                    </div>
+                </div>
+                `;
+            }).join('');
+        }
+
+        function renderLogs() {
+            const logContainer = document.getElementById('activityLog');
+            if (appState.logs.length === 0) {
+                logContainer.innerHTML = `
+                    <div class="text-center py-8 text-slate-400">
+                        <i class="fa-solid fa-plane-slash text-3xl mb-2 block opacity-50"></i>
+                        <p class="text-sm font-bold">لا توجد حجوزات مسجلة بعد.. ابدأ الآن!</p>
+                    </div>
+                `;
+                return;
+            }
+
+            logContainer.innerHTML = appState.logs.map(log => {
+                let rowStyle = 'bg-slate-50 border-slate-100 text-slate-700';
+                if (log.type === 'milestone') rowStyle = 'bg-amber-50 border-amber-200 text-amber-950 font-bold';
+                if (log.type === 'undo') rowStyle = 'bg-rose-50/50 border-rose-100 text-slate-500 text-xs';
+
+                return `
+                <div class="flex items-center justify-between gap-3 p-3 rounded-xl border ${rowStyle} text-sm transition-all">
+                    <span class="leading-snug">${log.text}</span>
+                    <span class="text-[11px] font-bold text-slate-400 shrink-0 bg-white px-2 py-0.5 rounded-md border border-slate-100">${log.time}</span>
+                </div>
+                `;
+            }).join('');
+        }
+
+        // --- 6. إدارة النوافذ المنبثقة (Modals) ---
+        window.openEditModal = function(repId) {
+            const rep = appState.reps.find(r => r.id === repId);
+            if (!rep) return;
+
+            document.getElementById('editRepId').value = rep.id;
+            document.getElementById('editRepName').value = rep.name;
+            document.getElementById('editRepTarget').value = rep.target;
+            document.getElementById('editRepAvatar').value = rep.avatar;
+
+            const avatarContainer = document.getElementById('avatarSelector');
+            avatarContainer.innerHTML = AVATAR_OPTIONS.map(av => `
+                <button type="button" onclick="selectAvatar('${av}')" class="avatar-opt text-2xl p-2 rounded-xl border-2 transition cursor-pointer ${av === rep.avatar ? 'border-sky-500 bg-sky-50 scale-105' : 'border-slate-200 hover:bg-slate-50'}">
+                    ${av}
+                </button>
+            `).join('');
+
+            const modal = document.getElementById('editModal');
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+        };
+
+        window.selectAvatar = function(av) {
+            document.getElementById('editRepAvatar').value = av;
+            document.querySelectorAll('.avatar-opt').forEach(btn => {
+                if (btn.textContent.trim() === av) {
+                    btn.className = 'avatar-opt text-2xl p-2 rounded-xl border-2 transition cursor-pointer border-sky-500 bg-sky-50 scale-105';
+                } else {
+                    btn.className = 'avatar-opt text-2xl p-2 rounded-xl border-2 transition cursor-pointer border-slate-200 hover:bg-slate-50';
+                }
+            });
+        };
+
+        window.closeEditModal = function() {
+            const modal = document.getElementById('editModal');
+            modal.classList.add('hidden');
+            modal.classList.remove('flex');
+        };
+
+        window.saveRepEdit = function(e) {
+            e.preventDefault();
+            const id = parseInt(document.getElementById('editRepId').value);
+            const name = document.getElementById('editRepName').value.trim();
+            const target = parseInt(document.getElementById('editRepTarget').value);
+            const avatar = document.getElementById('editRepAvatar').value;
+
+            const rep = appState.reps.find(r => r.id === id);
+            if (rep && name && target > 0) {
+                rep.name = name;
+                rep.target = target;
+                rep.avatar = avatar;
+                renderAll();
+                saveState();
+            }
+            closeEditModal();
+        };
+
+        window.openResetModal = function() {
+            const modal = document.getElementById('resetModal');
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+        };
+
+        window.closeResetModal = function() {
+            const modal = document.getElementById('resetModal');
+            modal.classList.add('hidden');
+            modal.classList.remove('flex');
+        };
+
+        window.confirmResetMonth = function() {
+            appState.reps.forEach(r => r.count = 0);
+            appState.logs = [{
+                id: Date.now(),
+                text: '🔄 تم بدء شهر جديد وتصفير العدادات! بالتوفيق يا أبطال 🚀',
+                time: 'الآن',
+                type: 'milestone'
+            }];
+            appState.cheerEmoji = '🚀';
+            appState.cheerMessage = 'شهر جديد وتحدي جديد لنورا ونهى ومصطفى! مين هيفتح أول حجز وياخد الصدارة؟';
+            renderAll();
+            saveState();
+            closeResetModal();
+        };
+
+        // تشغيل التطبيق وبدء الاتصال السحابي عند تحميل الصفحة
+        window.onload = function() {
+            renderAll();
+            initCloudSync();
+        };
+    </script>
+</body>
+</html>
